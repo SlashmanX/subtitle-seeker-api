@@ -3,10 +3,10 @@ var URI = require("URIjs");
 var async = require("async");
 var cheerio = require("cheerio");
 var xml2json = require("./lib/xml2json");
+var opensrt = require("../OpenSRTJS/opensrt");
 
 var API_KEY = "24430affe80bea1edf0e8413c3abf372a64afff2";
 var API_ENDPOINT = "http://api.subtitleseeker.com/get/title_subtitles/"
-var OPENSRT_ENDPOINT = "http://api.opensubtitles.org/xml-rpc"
 
 exports.getSubtitlesForEpisode = function(data, cb) {
 	var imdb_id = data.imdb_id.replace('tt', '');
@@ -30,6 +30,7 @@ exports.getSubtitlesForEpisode = function(data, cb) {
 		// In Series as it's sorted by popularity anyway
 		async.eachSeries(subsArray,
 			function(sub, callback) {
+				if(sub.site != "Opensubtitles.org") return callback(); // For now just get Open Subtitles
 				if(subs[sub.language]) {
 					return callback();
 				}
@@ -51,6 +52,10 @@ exports.getSRT = function(sub, cb) {
 
 		if(sub.site == "Opensubtitles.org") {
 			var sub_id = link.match(/\/subtitles\/(.*)\/(.*)/)[1];
+			opensrt.getSRTFromURL({subs: [sub_id]}, function(err, srt) {
+				if(err) return cb(err, null);
+				return cb(null, srt);
+			})
 		}
 	})
 }
